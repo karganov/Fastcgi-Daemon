@@ -3,7 +3,7 @@
 #include <cstdlib>
 #include <stdexcept>
 
-#include <openssl/md5.h>
+#include "details/md5.h"
 
 #include "fastcgi2/util.h"
 #include "fastcgi2/logger.h"
