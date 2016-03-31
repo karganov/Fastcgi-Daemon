@@ -20,13 +20,13 @@ namespace fastcgi
 {
 
 RequestsThreadPool::RequestsThreadPool(
-    const unsigned threadsNumber, const unsigned queueLength, fastcgi::Logger *logger) :
-        ThreadPool<RequestTask>(threadsNumber, queueLength), logger_(logger), delay_(0)
+    const unsigned threadsNumber, const unsigned queueLength, fastcgi::Logger *logger, const std::string& name) :
+        ThreadPool<RequestTask>(threadsNumber, queueLength, name), logger_(logger), delay_(0)
 {}
 
 RequestsThreadPool::RequestsThreadPool(
-    const unsigned threadsNumber, const unsigned queueLength, boost::uint64_t delay, fastcgi::Logger *logger) :
-        ThreadPool<RequestTask>(threadsNumber, queueLength), logger_(logger), delay_(delay)
+    const unsigned threadsNumber, const unsigned queueLength, boost::uint64_t delay, fastcgi::Logger *logger, const std::string& name) :
+        ThreadPool<RequestTask>(threadsNumber, queueLength, name), logger_(logger), delay_(delay)
 {}
 
 RequestsThreadPool::~RequestsThreadPool()

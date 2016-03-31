@@ -121,9 +121,10 @@ Globals::initPools() {
 			continue;
 		}
 
+        std::string str = "fd_" + poolName;
 		pools_.insert(make_pair(poolName, boost::shared_ptr<RequestsThreadPool>(delay ?
-				new RequestsThreadPool(threadsNumber, queueLength, delay, logger_) :
-				new RequestsThreadPool(threadsNumber, queueLength, logger_))));
+				new RequestsThreadPool(threadsNumber, queueLength, delay, logger_, str) :
+				new RequestsThreadPool(threadsNumber, queueLength, logger_, str))));
     }
 
     for (std::set<std::string>::const_iterator i = poolsNeeded.begin(); i != poolsNeeded.end(); ++i) {

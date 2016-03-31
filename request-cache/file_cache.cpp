@@ -117,6 +117,7 @@ FileRequestCache::onLoad() {
 	}
 
 	thread_.reset(new boost::thread(boost::bind(&FileRequestCache::handle, this)));
+    pthread_setname_np(thread_->native_handle(), "fd_file_cache");
 }
 
 void

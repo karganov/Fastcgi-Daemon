@@ -107,6 +107,7 @@ FCGIServer::start() {
 		throw std::runtime_error("Cannot create stop signal pipes");
 	}
 	stopThread_.reset(new boost::thread(boost::bind(&FCGIServer::stopThreadFunction, this)));
+    pthread_setname_np(stopThread_->native_handle(), "fd_stop");
 }
 
 void
@@ -183,6 +184,7 @@ FCGIServer::initMonitorThread() {
 	}
 
 	monitorThread_.reset(new boost::thread(boost::bind(&FCGIServer::monitor, this)));
+    pthread_setname_np(monitorThread_->native_handle(), "fd_monitor");
 }
 
 void
@@ -218,12 +220,15 @@ FCGIServer::initTimeStatistics() {
 
 void
 FCGIServer::createWorkThreads() {
+    int idx = 0;
 	for (std::vector<boost::shared_ptr<Endpoint> >::iterator i = endpoints_.begin();
 		 i != endpoints_.end();
-		 ++i) {
+		 ++i, ++idx) {
 		boost::function<void()> f = boost::bind(&FCGIServer::handle, this, i->get());
 		for (unsigned short t = 0; t < (*i)->threads(); ++t) {
-			globalPool_.create_thread(f);
+            boost::thread* thr = globalPool_.create_thread(f);
+            std::string str = "fd_e" + boost::lexical_cast<std::string>(idx) + "_t" + boost::lexical_cast<std::string>(t);
+            pthread_setname_np(thr->native_handle(), str.c_str());
 		}
 	}
 }

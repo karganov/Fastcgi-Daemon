@@ -31,6 +31,7 @@ FileLogger::FileLogger(ComponentContext *context) : Component(context),
         fd_(-1), stopping_(false),
         writingThread_(boost::bind(&FileLogger::writingThread, this))
 {
+    pthread_setname_np(writingThread_.native_handle(), "fd_file_logger");
     const Config *config = context->getConfig();
     const std::string componentXPath = context->getComponentXPath();
 

@@ -38,9 +38,9 @@ struct RequestTask {
 
 class RequestsThreadPool : public ThreadPool<RequestTask> {
 public:
-	RequestsThreadPool(const unsigned threadsNumber, const unsigned queueLength, fastcgi::Logger *logger);
+	RequestsThreadPool(const unsigned threadsNumber, const unsigned queueLength, fastcgi::Logger *logger, const std::string& name);
 	RequestsThreadPool(const unsigned threadsNumber, const unsigned queueLength, boost::uint64_t delay,
-		fastcgi::Logger *logger);
+		fastcgi::Logger *logger, const std::string& name);
 	virtual ~RequestsThreadPool();
 	virtual void handleTask(RequestTask task);
 	boost::uint64_t delay() const;

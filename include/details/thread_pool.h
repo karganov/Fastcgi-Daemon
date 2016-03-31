@@ -48,7 +48,8 @@ public:
 	typedef boost::function<void ()> InitFuncType;
 
 public:
-	ThreadPool(const unsigned threadsNumber, const unsigned queueLength)
+	ThreadPool(const unsigned threadsNumber, const unsigned queueLength, const std::string& name)
+        : name_(name)
 	{
 		info_.started = false;
 		info_.threadsNumber = threadsNumber;
@@ -75,7 +76,9 @@ public:
 
 		boost::function<void()> f = boost::bind(&ThreadPool<T>::workMethod, this, func);
 		for (unsigned i = 0; i < info_.threadsNumber; ++i) {
-			threads_.create_thread(f);
+			boost::thread* t = threads_.create_thread(f);
+            std::string str = name_ + boost::lexical_cast<std::string>(i);
+            pthread_setname_np(t->native_handle(), str.c_str());
 		}
 
 		info_.started = true;
@@ -186,6 +189,7 @@ private:
 	boost::thread_group threads_;
 	std::queue<T> tasksQueue_;
 	mutable ThreadPoolInfo info_;
+    std::string name_;
 };
 
 } // namespace fastcgi

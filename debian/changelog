@@ -1,3 +1,9 @@
+fastcgi-daemon2 (2.10-29) unstable; urgency=low
+
+  * Add name to each thread
+
+ -- Klevanets Igor <cerevra@yandex-team.ru>  Thu, 31 Mar 2016 19:17:08 +0300
+
 fastcgi-daemon2 (2.10-28) unstable; urgency=low
 
   * Drop dependency: OpenSSL
