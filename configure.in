@@ -1,5 +1,5 @@
-AC_INIT([fastcgi2], [2.0-1], [golubtsov@yandex-team.ru])
-AM_INIT_AUTOMAKE(1.9)
+AC_INIT([fastcgi2], [2.0-1], [toshik@yandex-team.ru])
+AM_INIT_AUTOMAKE([foreign])
 
 AC_CONFIG_MACRO_DIR([config])
 
@@ -63,6 +63,7 @@ fi
 
 AX_BOOST_BASE([1.30])
 AX_BOOST_THREAD
+
 if test "f$BOOST_THREAD_LDFLAGS" == "f"
 then
     AC_MSG_ERROR([boost thread lib not found, unable to compile])
@@ -82,7 +83,7 @@ LIBS=$stored_libs
 
 AC_CONFIG_FILES([Makefile include/Makefile include/fastcgi2/Makefile 
 	include/details/Makefile library/Makefile main/Makefile tests/Makefile 
-	example/Makefile syslog/Makefile request-cache/Makefile statistics/Makefile
+	example/Makefile syslog/Makefile statistics/Makefile
 	file-logger/Makefile])
 
 AC_OUTPUT

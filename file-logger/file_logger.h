@@ -1,10 +1,12 @@
 #ifndef _FASTCGI_FILE_LOGGER_H_
 #define _FASTCGI_FILE_LOGGER_H_
 
+#include <chrono>
 #include <vector>
 #include <string>
 #include <boost/thread.hpp>
 #include <boost/thread/condition.hpp>
+#include <sys/uio.h>
 
 #include "fastcgi2/component.h"
 #include "fastcgi2/logger.h"
@@ -17,12 +19,10 @@ public:
     FileLogger(ComponentContext *context);
     ~FileLogger();
 
-	virtual void onLoad();
-	virtual void onUnload();
+    virtual void onLoad();
+    virtual void onUnload();
 
-	virtual void log(const Logger::Level level, const char *format, va_list args);
-private:
-	virtual void rollOver();
+    virtual void log(const Logger::Level level, const char *format, va_list args);
 
 private:
     // File name
@@ -40,9 +40,6 @@ private:
     // File descriptor
     int fd_;
 
-    // Lock of file descriptor to avoid logrotate race-condition
-    boost::mutex fdMutex_;
-
 
     // Writing queue.
     // All writes happens in separate thread. All someInternal methods just
@@ -58,9 +55,12 @@ private:
     boost::condition queueCondition_;
     boost::mutex queueMutex_;
 
+    std::chrono::system_clock::time_point lastNotify_;
+
     // Writing thread.
     boost::thread writingThread_;
-
+    size_t lines_per_shot_;
+    std::vector<iovec> iov_;
 
     void openFile();
     void prepareFormat(char * buf, size_t size, const Logger::Level level, const char* format);

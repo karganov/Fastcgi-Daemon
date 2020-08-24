@@ -24,11 +24,13 @@
 namespace fastcgi {
 
 const size_t BUF_SIZE = 512;
+const size_t IOV_SIZE = 8;
 
 FileLogger::FileLogger(ComponentContext *context) : Component(context),
         openMode_(S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH),
         print_level_(true), print_time_(true),
         fd_(-1), stopping_(false),
+        lastNotify_(std::chrono::system_clock::now()),
         writingThread_(boost::bind(&FileLogger::writingThread, this))
 {
     const Config *config = context->getConfig();
@@ -36,6 +38,8 @@ FileLogger::FileLogger(ComponentContext *context) : Component(context),
 
     filename_ = config->asString(componentXPath + "/file");
     setLevel(stringToLevel(config->asString(componentXPath + "/level")));
+    lines_per_shot_ = config->asInt(componentXPath + "/lines_per_shot", IOV_SIZE);
+    iov_.resize(lines_per_shot_);
 
     print_level_ =
         (0 == strcasecmp(config->asString(componentXPath + "/print-level", "yes").c_str(), "yes"));
@@ -70,7 +74,7 @@ FileLogger::FileLogger(ComponentContext *context) : Component(context),
             std::cerr << "failed to create dir: " << name << ". Errno: " << errno << std::endl;
         }
     }
-    
+
     openFile();
 }
 
@@ -93,7 +97,6 @@ FileLogger::onUnload() {
 }
 
 void FileLogger::openFile() {
-    boost::mutex::scoped_lock fdLock(fdMutex_);
     if (fd_ != -1) {
         close(fd_);
     }
@@ -101,11 +104,6 @@ void FileLogger::openFile() {
     if (fd_ == -1) {
         std::cerr << "File logger cannot open file for writing: " << filename_ << std::endl;
     }
-}
-
-void
-FileLogger::rollOver() {
-    openFile();
 }
 
 void
@@ -132,7 +130,16 @@ FileLogger::log(const Logger::Level level, const char* format, va_list args) {
         vsnprintf(&data[0], size + 1, fmt, args);
         boost::mutex::scoped_lock lock(queueMutex_);
         queue_.push_back(std::string(data.begin(), data.begin() + size));
-        queueCondition_.notify_one();
+
+        // Trying to decrease csw counter
+        // It is not necessary to notify for every row - huge logs cause too many system calls
+        // Timers are comfort for human eyes and cheap for system
+        using namespace std::chrono;
+        auto now = system_clock::now();
+        if ( duration_cast<milliseconds>(now - lastNotify_).count() > 500 ) {
+            queueCondition_.notify_one(); // system call
+            lastNotify_ = now;
+        }
     }
 }
 
@@ -174,25 +181,51 @@ FileLogger::writingThread() {
         std::vector<std::string> queueCopy;
         {
             boost::mutex::scoped_lock lock(queueMutex_);
-            queueCondition_.wait(lock);
+            if (queue_.empty()) {
+                // timed_wait - protection against loss notify()
+                queueCondition_.timed_wait(lock, boost::posix_time::seconds(1));
+            }
             std::swap(queueCopy, queue_);
         }
 
-        boost::mutex::scoped_lock fdlock(fdMutex_);
         if (fd_ != -1) {
-            for (std::vector<std::string>::iterator i = queueCopy.begin(); i != queueCopy.end(); ++i) {
-                size_t wrote = 0;
-                while( wrote < i->length()) {
-                    int res = ::write(fd_, i->c_str() + wrote, i->length() - wrote);
+            std::vector<std::string>::const_iterator curStr = queueCopy.begin();
+            while (curStr != queueCopy.end()) {
+                ssize_t toWrite = 0;
+                size_t endPos = 0;
+
+                for (; endPos < lines_per_shot_ && curStr != queueCopy.end(); ++endPos, ++curStr) {
+                    iov_[endPos].iov_base = const_cast<char*>(curStr->data());
+                    iov_[endPos].iov_len  = curStr->size();
+                    toWrite += curStr->size();
+                }
+
+                size_t beginPos = 0;
+                ssize_t writen = 0;
+                while( writen < toWrite) {
+                    ssize_t res = ::writev(fd_, iov_.data() + beginPos, endPos - beginPos);
                     if (res < 0) {
-                        std::cerr << "Failed to write to log " << filename_ << " : " << strerror(errno) << std::endl;
-                        break;
+                       std::cerr << "Failed to write to log " << filename_
+                                 << " : " << strerror(errno) << std::endl;
                     }
                     else {
-                        wrote += res;
+                       writen += res;
+                       if (writen >= toWrite) break;
+
+                       while (res >= iov_[beginPos].iov_len) {
+                           res -= iov_[beginPos].iov_len;
+                           ++beginPos;
+                       }
+
+                       if (res) {
+                           iov_[beginPos].iov_len -= res;
+                           iov_[beginPos].iov_base += res;
+                       }
                     }
                 }
             }
+
+            queueCopy.clear();
         }
     }
 }

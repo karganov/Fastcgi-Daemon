@@ -1,8 +1,8 @@
 Source: fastcgi-daemon2
 Priority: optional
-Maintainer: Ilya Golubtsov <golubtsov@yandex-team.ru>
-Build-Depends: debhelper (>= 4.0.0),
- automake1.9,
+Maintainer: Anton Kortunov <toshik@yandex-team.ru>
+Build-Depends: debhelper (>= 7),
+ automake,
  autotools-dev,
  libboost-dev,
  libboost-system-dev,
@@ -12,10 +12,10 @@ Build-Depends: debhelper (>= 4.0.0),
  libboost-regex-dev,
  libtool,
  pkg-config,
- libssl-dev,
  autoconf-archive
-Standards-Version: 3.6.1
+Standards-Version: 3.8.0
 Section: libs
+Vcs-Git: git@github.com:lmovsesjan/Fastcgi-Daemon.git
 
 Package: libfastcgi-daemon2
 Section: libs
@@ -39,13 +39,6 @@ Description: fastcgi-daemon is an application server for FastCGI
  applications wtiteen in C++. Binary to execute server.
 
 Package: libfastcgi2-filelogger
-Section: libs
-Architecture: any
-Depends: ${shlibs:Depends}, libfastcgi-daemon2 (=${Source-Version})
-Description: fastcgi-daemon is an application server for FastCGI
- applications wtiteen in C++. Binary to execute server.
-
-Package: libfastcgi2-request-cache
 Section: libs
 Architecture: any
 Depends: ${shlibs:Depends}, libfastcgi-daemon2 (=${Source-Version})
